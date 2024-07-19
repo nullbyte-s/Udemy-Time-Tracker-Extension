@@ -1,13 +1,13 @@
 <h1 align="center">Udemy Time Tracker Extension</h1>
 
-Uma extensão para navegadores baseados no Chromium que ajuda a gerenciar o tempo restante das aulas de um curso na Udemy. Esta extensão calcula o tempo restante de aulas por seção e permite o ajuste com um controle deslizante para corresponder ao tempo disponível para estudo.
+Uma extensão para navegadores baseados no Chromium que ajuda a gerenciar o tempo restante das aulas de qualquer curso da Udemy. Esta extensão calcula o tempo restante de aulas por seção e permite o ajuste com um controle deslizante para corresponder ao tempo disponível para estudo.
 
 ## Funcionalidades
 
-- **Exibe o tempo restante** para o término da seção atual do curso Udemy.
+- **Exibe o tempo restante** para o término da seção atual de curso da Udemy.
 - **Permite ajustar o tempo estimado de estudo** usando um controle deslizante.
 - **Atualiza o valor máximo do controle deslizante** dinamicamente, arredondado para o próximo múltiplo de 30 minutos.
-- **Mostra a aula que você deve assistir** com base no tempo selecionado.
+- **Mostra até qual aula você deve assistir** com base no tempo selecionado.
 
 ## Instalação
 
@@ -30,7 +30,7 @@ Uma extensão para navegadores baseados no Chromium que ajuda a gerenciar o temp
 
 ## Uso
 
-1. **Abra a página do curso Udemy** no navegador.
+1. **Abra a página de um curso da Udemy** no navegador.
 2. **Clique no ícone da extensão** na barra de ferramentas do navegador para visualizar a interface.
 3. **Ajuste o controle deslizante** para definir o tempo de estudo desejado.
 4. **Veja até qual aula você deve assistir** com base no tempo estimado de estudo.
