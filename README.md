@@ -13,7 +13,7 @@ Uma extensão para navegadores baseados no Chromium que ajuda a gerenciar o temp
 
 1. **Clone o repositório:**
    ```bash
-   git clone https://github.com/nullbyte-s/udemy-time-tracker-extension.git
+   git clone https://github.com/nullbyte-s/Udemy-Time-Tracker-Extension.git
    ```
 
 2. **Navegue até o diretório da extensão:**
@@ -25,6 +25,8 @@ Uma extensão para navegadores baseados no Chromium que ajuda a gerenciar o temp
    - Abra o navegador e vá para `chrome://extensions/`.
    - Ative o **Modo do desenvolvedor** no canto superior direito.
    - Clique em **Carregar sem compactação** e selecione o diretório da extensão.
+   - Se houver alguma guia aberta da Udemy, atualize-a antes de abrir a extensão.
+   - (Opcional) Fixe o ícone da extensão para acesso rápido.
 
 ## Uso
 
