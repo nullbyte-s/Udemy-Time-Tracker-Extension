@@ -1,0 +1,38 @@
+body {
+    font-family: Arial, sans-serif;
+    width: 300px;
+    padding: 20px;
+    background-color: #f0f8ff;
+    margin: 0 auto;
+}
+
+.section-title {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.section-info {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+#time-remaining, #last-lesson-container, #range-container {
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+#range-container {
+    display: flex;
+    align-items: center;
+}
+
+#time-range {
+    flex: 1;
+}
+
+#selected-time {
+    margin-left: 10px;
+}
