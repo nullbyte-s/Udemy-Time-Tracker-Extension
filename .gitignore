@@ -1,0 +1,5 @@
+# Ignorar arquivos de backup
+/.backups/
+
+# Ignorar arquivos de configuração de IDE
+/.vscode/

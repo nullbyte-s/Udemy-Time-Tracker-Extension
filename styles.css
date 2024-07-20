@@ -19,7 +19,7 @@ body {
     margin-bottom: 8px;
 }
 
-#time-remaining, #last-lesson-container, #range-container {
+#time-remaining, #last-lesson-container, #range-container, #speed-container {
     font-size: 14px;
     margin-bottom: 20px;
 }
