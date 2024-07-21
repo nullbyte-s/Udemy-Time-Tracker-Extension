@@ -102,4 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('time-range').addEventListener('input', updateDisplays);
     document.getElementById('speed-select').addEventListener('change', updateDisplays);
+    document.getElementById('last-lesson').addEventListener('click', () => {
+        const lastLessonValue = document.getElementById('last-lesson').textContent.trim();
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightLesson', lesson: lastLessonValue });
+        });
+    });
 });

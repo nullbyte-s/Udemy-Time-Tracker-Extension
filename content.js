@@ -30,6 +30,36 @@ const getSectionTitle = () => {
     return 'Seção desconhecida';
 };
 
+function injectCSS(css) {
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.append(style);
+}
+
+
+function highlightLastLesson(lastLessonValue) {
+    const elementsToSearch = document.querySelectorAll('[data-purpose^="item-title"]');
+    const css = `
+        .highlight-border {
+            color: darkorchid;
+            font-weight: bold;
+            background: #99bfec35;
+            border-radius: 3px;
+            border: 0.25rem dashed darkorchid;
+            padding: 1vw;
+        }
+    `;
+
+    injectCSS(css);
+
+    for (const element of elementsToSearch) {
+        if (element.textContent.trim() === lastLessonValue) {
+            element.parentElement.parentNode.classList.toggle('highlight-border');
+            break;
+        }
+    };
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "getSectionData") {
         const sectionTitle = getSectionTitle();
@@ -62,5 +92,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const lessons = getLessonData();
 
         sendResponse({ sectionTitle, remainingTime, lessons });
+    }
+    if (request.action === 'highlightLesson') {
+        highlightLastLesson(request.lesson);
     }
 });
