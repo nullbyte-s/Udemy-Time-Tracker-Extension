@@ -4,7 +4,7 @@ const formatTime = (totalMinutes) => {
 
     if (hours > 0) {
         if (minutes > 0) {
-            return `${hours}h${minutes}`;
+            return `${hours}h${minutes.toString().padStart(2, '0')}`;
         }
         return `${hours}h`;
     }
