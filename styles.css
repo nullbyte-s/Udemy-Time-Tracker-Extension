@@ -6,6 +6,10 @@ body {
     margin: 0 auto;
 }
 
+select[multiple] option:checked {
+    background-color: #b3d4fc;
+}
+
 .section-title {
     font-size: 24px;
     font-weight: bold;
@@ -24,7 +28,7 @@ body {
     font-weight: bold
 }
 
-#time-remaining, #last-lesson-container, #range-container, #speed-container {
+.container, #time-remaining {
     font-size: 14px;
     margin-bottom: 20px;
 }
@@ -34,8 +38,9 @@ body {
     align-items: center;
 }
 
-#time-range {
+#time-range, #reviewSelect {
     flex: 1;
+    width: 100%;
 }
 
 #selected-time {
@@ -45,4 +50,63 @@ body {
 #last-lesson {
     cursor: pointer;
     color: DodgerBlue;
+}
+
+.btn {
+    appearance: none;
+    -webkit-appearance: none;
+    font-size: 10vw;
+    background: none;
+    padding: 0;
+    border: none;
+    color: #8B008B;
+    cursor: pointer;
+    margin-top: 3px;
+}
+  
+.btnSvg {
+    display: flex;
+    height: 32px;
+    margin: 0;
+    position: absolute;
+    transform: translate(-50%);
+    &:hover {
+        filter: drop-shadow(2px 2px 3px rgb(0 0 0 / 0.2));
+        lighting-color: #b3d4fc;
+    }
+}
+  
+  .btn .btnSvgPath {
+    transition: 0.3s;
+    border: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+  
+.btn:hover .btnSvgPath {
+    stroke-width: 2.2;
+    color: #8A2BE2;
+    vertical-align:center;
+    transform:scale(0.97);
+    transition:300ms;
+}
+
+.btn:active .btnSvgPath {
+    stroke: #778899;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 1px #b0c4de70);
+    transform:scale(0.95);
+    transition: 100ms;
+}
+
+.btn:focus .btnSvgPath {
+    stroke: #B0C4DE;
+    stroke-opacity: "0.2";
+    stroke-width: 1.7;
+}
+
+#reviewSelect .selected {
+    background-color: #d3d3d3;
+    color: #000;
 }

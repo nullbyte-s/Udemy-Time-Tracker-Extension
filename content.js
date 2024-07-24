@@ -36,12 +36,11 @@ function injectCSS(css) {
     document.head.append(style);
 }
 
-
-function highlightLastLesson(lastLessonValue) {
+function highlightLesson(lessonValue) {
     const elementsToSearch = document.querySelectorAll('[data-purpose^="item-title"]');
     const css = `
         .highlight-border {
-            color: darkorchid;
+            color: #9932CC;
             font-weight: bold;
             background: #99bfec35;
             border-radius: 3px;
@@ -53,11 +52,57 @@ function highlightLastLesson(lastLessonValue) {
     injectCSS(css);
 
     for (const element of elementsToSearch) {
-        if (element.textContent.trim() === lastLessonValue) {
+        if (element.textContent.trim() === lessonValue) {
             element.parentElement.parentNode.classList.toggle('highlight-border');
             break;
         }
     };
+}
+
+// TODO: corrigir lógica de obtenção de dados do armazenamento local dentro do namespace da extensão
+function highlightBookmarkedLessons() {
+    const lessonsMarker = JSON.parse(localStorage.getItem('lessonsMarker'));
+    if (!lessonsMarker) return;
+
+    const css = `
+        .highlight-bookmarkedLessons {
+            color: #F4A460;
+            font-weight: bold;
+            background: #FFEFD5;
+            border-radius: 3px;
+            border: 0.25rem dashed darkorchid;
+            padding: 1vw;
+        }
+    `;
+
+    injectCSS(css);
+
+    const getSectionTitle = () => {
+        const expandedSection = document.querySelector('[aria-expanded="true"]');
+        if (expandedSection) {
+            const titleElement = expandedSection.querySelector('.truncate-with-tooltip--ellipsis--YJw4N');
+            return titleElement ? titleElement.textContent.trim() : 'Seção desconhecida';
+        }
+        return 'Seção desconhecida';
+    };
+
+    lessonsMarker.forEach(section => {
+        const sectionTitle = section.sessionTitle;
+        const lessonsList = section.lessonsList;
+
+        const sectionElements = document.querySelectorAll('[data-purpose="section-heading"]');
+        sectionElements.forEach(sectionElement => {
+            const currentSectionTitle = getSectionTitle();
+            if (currentSectionTitle === sectionTitle) {
+                const lessonElements = sectionElement.parentElement.querySelectorAll('[data-purpose^="item-title"]');
+                lessonElements.forEach(lessonElement => {
+                    if (lessonsList.includes(lessonElement.textContent.trim())) {
+                        lessonElement.parentElement.parentNode.classList.toggle('highlight-bookmarkedLessons');
+                    }
+                });
+            }
+        });
+    });
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -83,6 +128,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         title: title,
                         time: time
                     });
+                } else if (checkboxId && !uncheckedCheckboxesIds.has(checkboxId)) {
+                    const title = item.textContent.trim();
+
+                    lessonData.push({
+                        title: title,
+                        time: 'Assistido'
+                    });
                 }
             });
 
@@ -93,7 +145,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         sendResponse({ sectionTitle, remainingTime, lessons });
     }
+
     if (request.action === 'highlightLesson') {
-        highlightLastLesson(request.lesson);
+        highlightLesson(request.lesson);
+    } else if (request.action === 'bookmarkLesson') {
+        highlightBookmarkedLessons();
     }
+});
+
+window.addEventListener('load', () => {
+    highlightBookmarkedLessons();
 });

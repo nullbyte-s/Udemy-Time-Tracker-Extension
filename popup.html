@@ -14,12 +14,12 @@
         <div class="section-info">Tempo Restante:</div>
         <div id="time-remaining" class="time-remaining"></div>
         <div class="section-info">Tempo estimado de estudo:</div>
-        <div id="range-container">
+        <div class="container">
             <input type="range" id="time-range" min="30" max="480" step="30" value="30">
             <span id="selected-time">30m</span>
         </div>
         <div class="section-info">Velocidade de Reprodução:</div>
-        <div id="speed-container">
+        <div class="container">
             <select id="speed-select">
                 <option value="0.5">0.5x</option>
                 <option value="0.75">0.75x</option>
@@ -30,9 +30,62 @@
                 <option value="2">2x</option>
             </select>
         </div>
-        <div id="last-lesson-container">
+        <div class="container">
             <div class="section-info">Assista até a aula:</div>
             <div id="last-lesson"></div>
+        </div>
+        <div class="container">
+            <div class="section-info">Marcar para revisão:</div>
+            <select id="reviewSelect" name="reviewSelect" multiple size="5"></select>
+            <button class="btn" id="review-btn" title="Adicionar item(ns) para revisão">
+                <svg class="btnSvg" style="left: 40%" width="32px" height="32px" viewBox="0 0 24 24" fill="none">
+                    <g class="btnSvgPath">
+                        <path
+                            d="M16 14.0455V11.5488C16 9.40445 16 8.3323 15.4142 7.66615C14.8284 7 13.8856 7 12 7C10.1144 7 9.17157 7 8.58579 7.66615C8 8.3323 8 9.40445 8 11.5488V14.0455C8 15.5937 8 16.3679 8.32627 16.7062C8.48187 16.8675 8.67829 16.9688 8.88752 16.9958C9.32623 17.0522 9.83855 16.5425 10.8632 15.5229C11.3161 15.0722 11.5426 14.8469 11.8046 14.7875C11.9336 14.7583 12.0664 14.7583 12.1954 14.7875C12.4574 14.8469 12.6839 15.0722 13.1368 15.5229C14.1615 16.5425 14.6738 17.0522 15.1125 16.9958C15.3217 16.9688 15.5181 16.8675 15.6737 16.7062C16 16.3679 16 15.5937 16 14.0455Z"
+                            stroke="#FF8C00" stroke-width="1.5" />
+                    </g>
+                    <path class="btnSvgPath"
+                        d="M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
+                        stroke="currentColor" stroke-width="1.5" />
+                </svg>
+            </button>
+            <button class="btn" id="cancelReview-btn" title="Remover item(ns) selecionado(s)">
+                <svg class="btnSvg" style="left: 50%" width="32px" height="32px" viewBox="0 0 24 24" fill="none">
+                    <g class="btnSvgPath">
+                        <path
+                            d="M6.75827 17.2426L12.0009 12M17.2435 6.75736L12.0009 12M12.0009 12L6.75827 6.75736M12.0009 12L17.2435 17.2426"
+                            stroke="#DC143C" stroke-width="1.5" stroke-linecap="round" />
+                    </g>
+                    <path class="btnSvgPath"
+                        d="M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
+                        stroke="currentColor" stroke-width="1.5" />
+                </svg>
+            </button>
+            <button class="btn" id="clear-btn" title="Limpar tudo">
+                <svg class="btnSvg" style="left: 60%" width="32px" height="32px" viewBox="0 0 24 24" fill="none">
+                    <g class="btnSvgPath">
+                        <path
+                            style="fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1;stroke-width:0.00512;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;"
+                            d="M 331.683333 69.8 L 331.683333 -0.025 L 180.316667 -0.025 L 180.316667 69.8 L 52.383333 69.8 L 52.383333 197.891667 L 87.216667 197.891667 L 87.216667 512.025 L 424.783333 512.025 L 424.783333 197.891667 L 459.616667 197.891667 L 459.616667 69.8 Z M 215.308333 34.966667 L 296.691667 34.966667 L 296.691667 69.8 L 215.308333 69.8 Z M 389.791667 477.033333 L 122.208333 477.033333 L 122.208333 197.891667 L 389.791667 197.891667 Z M 424.783333 162.9 L 87.216667 162.9 L 87.216667 104.791667 L 424.783333 104.791667 Z M 424.783333 162.9 "
+                            transform="matrix(0.0246711,0,0,0.0246711,5.684211,5.684211)" />
+                        <path
+                            style="fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1;stroke-width:0.00512;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;"
+                            d="M 168.758333 256 L 203.591667 256 L 203.591667 418.925 L 168.758333 418.925 Z M 168.758333 256 "
+                            transform="matrix(0.0246711,0,0,0.0246711,5.684211,5.684211)" />
+                        <path
+                            style="fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1;stroke-width:0.00512;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;"
+                            d="M 308.408333 256 L 343.241667 256 L 343.241667 418.925 L 308.408333 418.925 Z M 308.408333 256 "
+                            transform="matrix(0.0246711,0,0,0.0246711,5.684211,5.684211)" />
+                        <path
+                            style="fill-rule:nonzero;fill:rgb(0%,0%,0%);fill-opacity:1;stroke-width:0.00512;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:4;"
+                            d="M 238.583333 256 L 273.416667 256 L 273.416667 418.925 L 238.583333 418.925 Z M 238.583333 256 "
+                            transform="matrix(0.0246711,0,0,0.0246711,5.684211,5.684211)" />
+                    </g>
+                    <path class="btnSvgPath"
+                        d="M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z"
+                        stroke="currentColor" stroke-width="1.5" />
+                </svg>
+            </button>
         </div>
     </div>
     <script src="popup.js"></script>

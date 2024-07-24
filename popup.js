@@ -47,6 +47,11 @@ function convertTimeToMinutes(timeString) {
     return minutes;
 }
 
+function extractNumberFromTitle(title) {
+    const match = title.match(/^(\d+)\./);
+    return match ? parseInt(match[1], 10) : null;
+}
+
 const updateWatchableLessonsDisplay = (speed = 1) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, { action: "getSectionData" }, (response) => {
@@ -55,10 +60,13 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
                 function calculateWatchableLessons(maxMinutes) {
                     let totalMinutes = 0;
                     let lastWatchableLesson = null;
+                    const unwatchedLessons = lessons.filter(lesson => lesson.time !== 'Assistido');
+                    const watchableLessons = [];
 
-                    for (const lesson of lessons) {
+                    for (const lesson of unwatchedLessons) {
                         const lessonMinutes = Math.round(convertTimeToMinutes(lesson.time) / speed);
                         if (totalMinutes + lessonMinutes <= maxMinutes) {
+                            watchableLessons.push(lesson.title);
                             lastWatchableLesson = lesson.title;
                             totalMinutes += lessonMinutes;
                         } else {
@@ -66,24 +74,119 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
                         }
                     }
 
-                    return lastWatchableLesson;
+                    return {
+                        watchableLessons: watchableLessons,
+                        lastWatchableLesson: lastWatchableLesson
+                    };
                 }
 
                 const sectionTitle = response.sectionTitle || 'Não disponível';
                 const remainingTime = response.remainingTime || 0;
                 const lessons = response.lessons || [];
+                const watchedLessons = lessons.filter(lesson => lesson.time === 'Assistido');
                 const maxWatchTime = getSelectedTime();
-                const lastWatchableLesson = calculateWatchableLessons(maxWatchTime);
+                const watchableLessons = calculateWatchableLessons(maxWatchTime);
+                const lastWatchableLesson = watchableLessons.lastWatchableLesson;
+
+                if (lastWatchableLesson === null) {
+                    document.getElementById('last-lesson').textContent = "Seção finalizada";
+                    document.getElementById('last-lesson').style.color = '#B0C4DE';
+                    document.getElementById('last-lesson').style.fontStyle = 'italic';
+                } else {
+                    document.getElementById('last-lesson').textContent = `${lastWatchableLesson}`;
+                }
 
                 document.getElementById('section-name').textContent = sectionTitle;
                 document.getElementById('time-remaining').textContent = formatTime(Math.round(remainingTime / speed));
-                document.getElementById('last-lesson').textContent = `${lastWatchableLesson}`;
+
+                for (const lesson of watchedLessons) {
+                    const option = document.createElement("option");
+                    const lessonNumber = extractNumberFromTitle(lesson.title);
+                    option.value = lessonNumber;
+                    option.text = lesson.title;
+                    reviewSelect.appendChild(option);
+                }
+
+                document.getElementById('review-btn').addEventListener('click', () => {
+                    const reviewSelect = document.getElementById("reviewSelect");
+                    const selectedValues = [];
+
+                    for (const option of reviewSelect.options) {
+                        if (option.selected) {
+                            selectedValues.push(option.text);
+                        }
+                    }
+
+                    let lessonsMarker = localStorage.getItem('lessonsMarker');
+
+                    if (lessonsMarker) {
+                        lessonsMarker = JSON.parse(lessonsMarker);
+                        let sectionFound = false;
+
+                        for (const section of lessonsMarker) {
+                            if (section.sessionTitle === sectionTitle) {
+                                section.lessonsList = section.lessonsList.concat(selectedValues);
+                                sectionFound = true;
+                                break;
+                            }
+                        }
+
+                        if (!sectionFound) {
+                            lessonsMarker.push({
+                                sessionTitle: sectionTitle,
+                                lessonsList: selectedValues
+                            });
+                        }
+                    } else {
+                        lessonsMarker = [{
+                            sessionTitle: sectionTitle,
+                            lessonsList: selectedValues
+                        }];
+                    }
+
+                    localStorage.setItem('lessonsMarker', JSON.stringify(lessonsMarker));
+
+                    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                        chrome.tabs.sendMessage(tabs[0].id, { action: 'bookmarkLesson' });
+                    });
+                });
+
+                document.getElementById('cancelReview-btn').addEventListener('click', () => {
+                    const reviewSelect = document.getElementById("reviewSelect");
+                    const selectedValues = [];
+
+                    for (const option of reviewSelect.options) {
+                        if (option.selected) {
+                            selectedValues.push(option.text);
+                        }
+                    }
+
+                    let lessonsMarker = localStorage.getItem('lessonsMarker');
+
+                    if (lessonsMarker) {
+                        lessonsMarker = JSON.parse(lessonsMarker);
+                        let sectionFound = false;
+
+                        for (const section of lessonsMarker) {
+                            if (section.sessionTitle === sectionTitle) {
+                                section.lessonsList = section.lessonsList.filter(lesson => !selectedValues.includes(lesson));
+                                sectionFound = true;
+                                break;
+                            }
+                        }
+
+                        if (sectionFound) {
+                            localStorage.setItem('lessonsMarker', JSON.stringify(lessonsMarker));
+                        }
+                    }
+                });
 
                 updateRangeMax(Math.round(remainingTime / speed));
             } else {
                 document.getElementById('section-name').textContent = 'Erro ao obter dados';
                 document.getElementById('time-remaining').textContent = '0m';
                 document.getElementById('last-lesson').textContent = 'Nenhuma';
+                document.getElementById("reviewSelect").style.display = 'none';
             }
         });
     });
@@ -91,6 +194,7 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     const getSpeed = () => parseFloat(document.getElementById('speed-select').value) || 1;
+    const select = document.getElementById('reviewSelect');
 
     const updateDisplays = () => {
         const speed = getSpeed();
@@ -103,9 +207,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('time-range').addEventListener('input', updateDisplays);
     document.getElementById('speed-select').addEventListener('change', updateDisplays);
     document.getElementById('last-lesson').addEventListener('click', () => {
-        const lastLessonValue = document.getElementById('last-lesson').textContent.trim();
+        const highlightLesson = document.getElementById('last-lesson').textContent.trim();
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightLesson', lesson: lastLessonValue });
+            chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightLesson', lesson: highlightLesson });
         });
+    });
+
+    select.addEventListener('mousedown', function (event) {
+        event.preventDefault();
+        const option = event.target;
+        if (option.tagName === 'OPTION') {
+            const scrollPosition = select.scrollTop;
+            option.selected = !option.selected;
+            option.classList.toggle('selected', option.selected);
+            setTimeout(() => {
+                select.scrollTop = scrollPosition;
+            }, 0);
+        }
+    });
+
+    document.getElementById('clear-btn').addEventListener('click', () => {
+        localStorage.removeItem('lessonsMarker');
     });
 });
