@@ -59,10 +59,28 @@ function highlightLesson(lessonValue) {
     };
 }
 
-// TODO: corrigir lógica de obtenção de dados do armazenamento local dentro do namespace da extensão
-function highlightBookmarkedLessons() {
-    const lessonsMarker = JSON.parse(localStorage.getItem('lessonsMarker'));
+async function checkExpandedSection(maxAttempts, interval) {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                const expandedSection = document.querySelector('.truncate-with-tooltip--ellipsis--YJw4N');
+                if (expandedSection !== undefined) {
+                    resolve(true);
+                    return;
+                }
+            }
+            resolve(false);
+        }, interval);
+    });
+}
+async function highlightBookmarkedLessons(lessonsMarker, cancel = false) {
     if (!lessonsMarker) return;
+
+    const sectionElements = await checkExpandedSection(3, 3000);
+    if (!sectionElements) {
+        console.log('Não foi possível encontrar nenhuma seção aberta após 3 tentativas');
+        return;
+    }
 
     const css = `
         .highlight-bookmarkedLessons {
@@ -77,29 +95,44 @@ function highlightBookmarkedLessons() {
 
     injectCSS(css);
 
-    const getSectionTitle = () => {
-        const expandedSection = document.querySelector('[aria-expanded="true"]');
-        if (expandedSection) {
-            const titleElement = expandedSection.querySelector('.truncate-with-tooltip--ellipsis--YJw4N');
-            return titleElement ? titleElement.textContent.trim() : 'Seção desconhecida';
-        }
-        return 'Seção desconhecida';
-    };
+    // console.log('função highlightBookmarkedLessons rodando, lessonsMarker: ' + JSON.stringify(lessonsMarker));
 
     lessonsMarker.forEach(section => {
         const sectionTitle = section.sessionTitle;
         const lessonsList = section.lessonsList;
 
-        const sectionElements = document.querySelectorAll('[data-purpose="section-heading"]');
-        sectionElements.forEach(sectionElement => {
-            const currentSectionTitle = getSectionTitle();
+        const getAllSectionTitles = () => {
+            const expandedSection = document.querySelector('[aria-expanded="true"]');
+            if (expandedSection) {
+                const sectionElements = document.querySelectorAll('.truncate-with-tooltip--ellipsis--YJw4N');
+                if (sectionElements.length > 0) {
+                    return Array.from(sectionElements);
+                }
+            }
+            return [];
+        };
+
+        getAllSectionTitles().forEach(sectionElement => {
+            const currentSectionTitle = sectionElement.textContent.trim();
+
             if (currentSectionTitle === sectionTitle) {
-                const lessonElements = sectionElement.parentElement.querySelectorAll('[data-purpose^="item-title"]');
-                lessonElements.forEach(lessonElement => {
-                    if (lessonsList.includes(lessonElement.textContent.trim())) {
-                        lessonElement.parentElement.parentNode.classList.toggle('highlight-bookmarkedLessons');
+                const lessonElements = document.querySelectorAll('[data-purpose^="item-title"]');
+                for (const lessonElement of lessonElements) {
+                    const lessonText = lessonElement.textContent.trim();
+                    const elementToReceiveClass = lessonElement.parentElement.parentNode;
+
+                    if (lessonsList.includes(lessonText)) {
+                        if (cancel && elementToReceiveClass.classList.contains('highlight-bookmarkedLessons')) {
+                            elementToReceiveClass.classList.remove('highlight-bookmarkedLessons');
+                            console.log('Removendo classe dos elementos: ' + elementToReceiveClass);
+                        } else if (!elementToReceiveClass.classList.contains('highlight-bookmarkedLessons')) {
+                            elementToReceiveClass.classList.add('highlight-bookmarkedLessons');
+                        }
+                    } else if (elementToReceiveClass.classList.contains('highlight-bookmarkedLessons')) {
+                        elementToReceiveClass.classList.remove('highlight-bookmarkedLessons');
+                        console.log('Removendo classe dos elementos não mais na lista: ' + elementToReceiveClass);
                     }
-                });
+                }
             }
         });
     });
@@ -149,10 +182,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'highlightLesson') {
         highlightLesson(request.lesson);
     } else if (request.action === 'bookmarkLesson') {
-        highlightBookmarkedLessons();
+        highlightBookmarkedLessons(request.message);
+    } else if (request.action === 'cancelBookmarkLesson') {
+        highlightBookmarkedLessons(request.message, true);
     }
 });
 
 window.addEventListener('load', () => {
-    highlightBookmarkedLessons();
+    chrome.runtime.sendMessage({ action: 'updateLessonsMarker' }, response => {
+        console.log('Udemy Time Tracker: ' + (response ? response.message : 'Sem resposta'));
+    });
 });
