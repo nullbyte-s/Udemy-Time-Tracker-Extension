@@ -76,9 +76,9 @@ async function checkExpandedSection(maxAttempts, interval) {
 async function highlightBookmarkedLessons(lessonsMarker, cancel = false) {
     if (!lessonsMarker) return;
 
-    const sectionElements = await checkExpandedSection(3, 3000);
+    const sectionElements = await checkExpandedSection(4, 2000);
     if (!sectionElements) {
-        console.log('Não foi possível encontrar nenhuma seção aberta após 3 tentativas');
+        console.log('Não foi possível encontrar nenhuma seção aberta');
         return;
     }
 
@@ -94,8 +94,6 @@ async function highlightBookmarkedLessons(lessonsMarker, cancel = false) {
     `;
 
     injectCSS(css);
-
-    // console.log('função highlightBookmarkedLessons rodando, lessonsMarker: ' + JSON.stringify(lessonsMarker));
 
     lessonsMarker.forEach(section => {
         const sectionTitle = section.sessionTitle;
@@ -117,25 +115,68 @@ async function highlightBookmarkedLessons(lessonsMarker, cancel = false) {
 
             if (currentSectionTitle === sectionTitle) {
                 const lessonElements = document.querySelectorAll('[data-purpose^="item-title"]');
-                for (const lessonElement of lessonElements) {
+                lessonElements.forEach(lessonElement => {
                     const lessonText = lessonElement.textContent.trim();
                     const elementToReceiveClass = lessonElement.parentElement.parentNode;
 
                     if (lessonsList.includes(lessonText)) {
                         if (cancel && elementToReceiveClass.classList.contains('highlight-bookmarkedLessons')) {
                             elementToReceiveClass.classList.remove('highlight-bookmarkedLessons');
-                            console.log('Removendo classe dos elementos: ' + elementToReceiveClass);
                         } else if (!elementToReceiveClass.classList.contains('highlight-bookmarkedLessons')) {
                             elementToReceiveClass.classList.add('highlight-bookmarkedLessons');
                         }
-                    } else if (elementToReceiveClass.classList.contains('highlight-bookmarkedLessons')) {
+                    } else if (!lessonsList.includes(lessonText) && elementToReceiveClass.classList.contains('highlight-bookmarkedLessons')) {
                         elementToReceiveClass.classList.remove('highlight-bookmarkedLessons');
-                        console.log('Removendo classe dos elementos não mais na lista: ' + elementToReceiveClass);
                     }
-                }
+                });
             }
         });
     });
+}
+
+function showNotification(message, duration = 2000) {
+    const notificationContainer = document.createElement('div');
+    notificationContainer.className = 'custom-toast';
+    const notificationMessage = document.createElement('div');
+    notificationMessage.className = 'custom-toast-message';
+    notificationMessage.textContent = message;
+    notificationContainer.appendChild(notificationMessage);
+
+    document.body.appendChild(notificationContainer);
+
+    const style = document.createElement('style');
+    style.textContent = `
+        .custom-toast {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #8A2BE2;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .custom-toast-show {
+            opacity: 1;
+        }
+        .custom-toast-message {
+            margin: 0;
+        }
+    `;
+    document.head.appendChild(style);
+    requestAnimationFrame(() => {
+        notificationContainer.classList.add('custom-toast-show');
+    });
+    setTimeout(() => {
+        notificationContainer.classList.remove('custom-toast-show');
+        setTimeout(() => {
+            notificationContainer.remove();
+        }, 500);
+    }, duration);
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -183,8 +224,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         highlightLesson(request.lesson);
     } else if (request.action === 'bookmarkLesson') {
         highlightBookmarkedLessons(request.message);
+        if (request.status === 'updated') {
+            showNotification('Marcador de aula atualizado');
+        }
     } else if (request.action === 'cancelBookmarkLesson') {
         highlightBookmarkedLessons(request.message, true);
+        showNotification('Marcador de aula removido');
     }
 });
 

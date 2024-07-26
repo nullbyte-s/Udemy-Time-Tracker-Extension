@@ -58,14 +58,6 @@ function extractNumberFromTitle(title) {
     return match ? parseInt(match[1], 10) : null;
 }
 
-// Função para desmarcar todas as lições após apagar do armazenamento local
-function deselectAllOptions(selectElement) {
-    for (const option of selectElement.options) {
-        option.selected = false;
-        option.classList.remove('selected');
-    }
-}
-
 // Função principal para atualizar a exibição das lições que podem ser assistidas
 const updateWatchableLessonsDisplay = (speed = 1) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -176,9 +168,6 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
 
                 // Evento para o botão de revisão
                 document.getElementById('review-btn').addEventListener('click', () => {
-                    // chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                    //     chrome.tabs.sendMessage(tabs[0].id, { action: 'bookmarkLesson', message: updateLessonsMarker() });
-                    // });
                     chrome.runtime.sendMessage({ action: 'updateLessonsMarker', data: updateLessonsMarker() });
                 });
 
@@ -212,12 +201,11 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
                                 if (sectionFound) {
                                     chrome.runtime.sendMessage({ action: 'cancelLessonsMarker', data: selectedValues }, response => {
                                         if (response.status === 'success') {
-                                            console.log('Lições canceladas com sucesso');
                                             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                                                 chrome.tabs.sendMessage(tabs[0].id, { action: 'cancelBookmarkLesson', message: lessonsMarker });
                                             });
                                         } else {
-                                            console.log('Erro ao cancelar lições:', response.message);
+                                            console.log('Erro ao cancelar marcadores de lições:', response.message);
                                         }
                                     });
                                 }
@@ -228,9 +216,36 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
                     });
                 });
 
+                // Evento para o botão de remover todos os marcadores de revisão
                 document.getElementById('clear-btn').addEventListener('click', () => {
-                    deselectAllOptions(reviewSelect);
-                    // TODO: remover item completo do armazenamento local
+                    const selectedValues = [];
+
+                    for (const option of reviewSelect.options) {
+                        selectedValues.push(option.text);
+                        option.selected = false;
+                        option.classList.remove('selected');
+                    }
+
+                    lessonsMarker = [{
+                        sessionTitle: sectionTitle,
+                        lessonsList: selectedValues
+                    }];
+
+                    for (const section of lessonsMarker) {
+                        section.lessonsList = section.lessonsList.filter(lesson => !selectedValues.includes(lesson));
+                        sectionFound = true;
+                        break;
+                    }
+
+                    chrome.runtime.sendMessage({ action: 'cancelLessonsMarker' }, response => {
+                        if (response.status === 'success') {
+                            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                                chrome.tabs.sendMessage(tabs[0].id, { action: 'cancelBookmarkLesson', message: lessonsMarker });
+                            });
+                        } else {
+                            console.log('Erro ao remover todos os marcadores de lições:', response.message);
+                        }
+                    });
                 });
 
                 updateRangeMax(Math.round(remainingTime / speed));

@@ -9,7 +9,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         const lessonsMarker = result.lessonsMarker;
                         if (lessonsMarker) {
                             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                                chrome.tabs.sendMessage(tabs[0].id, { action: 'bookmarkLesson', message: lessonsMarker });
+                                chrome.tabs.sendMessage(tabs[0].id, { action: 'bookmarkLesson', message: lessonsMarker, status: 'updated' });
                             });
                         }
                     });
@@ -21,9 +21,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             chrome.storage.local.get('lessonsMarker', (result) => {
                 const lessonsMarker = result.lessonsMarker;
                 if (lessonsMarker) {
-                    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                        chrome.tabs.sendMessage(tabs[0].id, { action: 'bookmarkLesson', message: lessonsMarker });
-                    });
                     sendResponse({ status: 'success', message: 'Marcador de aulas ativado' });
                 } else {
                     sendResponse({ status: 'error', message: 'Marcador de aulas inativo' });

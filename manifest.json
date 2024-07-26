@@ -1,11 +1,10 @@
 {
     "manifest_version": 3,
     "name": "Udemy Time Tracker",
-    "version": "1.3.2",
+    "version": "1.4.0",
     "description": "Uma ferramenta que ajuda a gerenciar o tempo e organizar os estudos de cursos na Udemy.",
     "permissions": [
         "activeTab",
-        "scripting",
         "storage"
     ],
     "host_permissions": [
