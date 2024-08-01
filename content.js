@@ -3,33 +3,6 @@ const parseTime = (timeStr) => {
     return match ? parseInt(match[1], 10) : 0;
 };
 
-const getRemainingTime = () => {
-    let totalRemainingTime = 0;
-
-    const items = document.querySelectorAll('[data-purpose^="curriculum-item-"]');
-    items.forEach(item => {
-        const checkbox = item.querySelector('input[type="checkbox"]');
-        const timeElement = item.querySelector('div.curriculum-item-link--metadata--XK804 span');
-
-        if (timeElement && (!checkbox || !checkbox.checked)) {
-            const timeStr = timeElement.textContent;
-            const time = parseTime(timeStr);
-            totalRemainingTime += time;
-        }
-    });
-
-    return totalRemainingTime;
-};
-
-const getSectionTitle = () => {
-    const expandedSection = document.querySelector('[aria-expanded="true"]');
-    if (expandedSection) {
-        const titleElement = expandedSection.querySelector('.truncate-with-tooltip--ellipsis--YJw4N');
-        return titleElement ? titleElement.textContent.trim() : 'Seção desconhecida';
-    }
-    return 'Seção desconhecida';
-};
-
 function injectCSS(css) {
     const style = document.createElement('style');
     style.textContent = css;
@@ -48,40 +21,39 @@ function highlightLesson(lessonValue) {
             padding: 1vw;
         }
     `;
-
     injectCSS(css);
-
     for (const element of elementsToSearch) {
         if (element.textContent.trim() === lessonValue) {
             element.parentElement.parentNode.classList.toggle('highlight-border');
             break;
         }
-    };
+    }
 }
 
 async function checkExpandedSection(maxAttempts, interval) {
     return new Promise(resolve => {
-        setTimeout(() => {
-            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                const expandedSection = document.querySelector('.truncate-with-tooltip--ellipsis--YJw4N');
-                if (expandedSection !== undefined) {
-                    resolve(true);
-                    return;
-                }
+        let attempts = 0;
+        const check = setInterval(() => {
+            attempts++;
+            const expandedSection = document.querySelector('.truncate-with-tooltip--ellipsis--YJw4N');
+            if (expandedSection) {
+                clearInterval(check);
+                resolve(true);
+            } else if (attempts >= maxAttempts) {
+                clearInterval(check);
+                resolve(false);
             }
-            resolve(false);
         }, interval);
     });
 }
+
 async function highlightBookmarkedLessons(lessonsMarker, cancel = false) {
     if (!lessonsMarker) return;
-
     const sectionElements = await checkExpandedSection(4, 2000);
     if (!sectionElements) {
         console.log('Não foi possível encontrar nenhuma seção aberta');
         return;
     }
-
     const css = `
         .highlight-bookmarkedLessons {
             color: #F4A460;
@@ -92,13 +64,10 @@ async function highlightBookmarkedLessons(lessonsMarker, cancel = false) {
             padding: 1vw;
         }
     `;
-
     injectCSS(css);
-
     lessonsMarker.forEach(section => {
         const sectionTitle = section.sessionTitle;
-        const lessonsList = section.lessonsList;
-
+        const lessonsList = section.lessons || [];
         const getAllSectionTitles = () => {
             const expandedSection = document.querySelector('[aria-expanded="true"]');
             if (expandedSection) {
@@ -109,16 +78,13 @@ async function highlightBookmarkedLessons(lessonsMarker, cancel = false) {
             }
             return [];
         };
-
         getAllSectionTitles().forEach(sectionElement => {
             const currentSectionTitle = sectionElement.textContent.trim();
-
             if (currentSectionTitle === sectionTitle) {
                 const lessonElements = document.querySelectorAll('[data-purpose^="item-title"]');
                 lessonElements.forEach(lessonElement => {
                     const lessonText = lessonElement.textContent.trim();
                     const elementToReceiveClass = lessonElement.parentElement.parentNode;
-
                     if (lessonsList.includes(lessonText)) {
                         if (cancel && elementToReceiveClass.classList.contains('highlight-bookmarkedLessons')) {
                             elementToReceiveClass.classList.remove('highlight-bookmarkedLessons');
@@ -141,9 +107,7 @@ function showNotification(message, duration = 2000) {
     notificationMessage.className = 'custom-toast-message';
     notificationMessage.textContent = message;
     notificationContainer.appendChild(notificationMessage);
-
     document.body.appendChild(notificationContainer);
-
     const style = document.createElement('style');
     style.textContent = `
         .custom-toast {
@@ -179,48 +143,68 @@ function showNotification(message, duration = 2000) {
     }, duration);
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "getSectionData") {
-        const sectionTitle = getSectionTitle();
-        const remainingTime = getRemainingTime();
-        const getLessonData = () => {
-            const lessonElements = Array.from(document.querySelectorAll('[data-purpose^="item-title"]'));
-            const timeElements = Array.from(document.querySelectorAll('.curriculum-item-link--metadata--XK804'));
-            const checkboxElements = Array.from(document.querySelectorAll('input[type="checkbox"]'));
-            const uncheckedCheckboxes = checkboxElements.filter(checkbox => !checkbox.checked);
-            const uncheckedCheckboxesIds = new Set(uncheckedCheckboxes.map(checkbox => checkbox.id));
-            const lessonData = [];
-            lessonElements.forEach((item, index) => {
-                const checkboxId = checkboxElements[index]?.id;
+const getSectionData = () => {
+    const sections = Array.from(document.querySelectorAll('.ud-accordion-panel-title'));
+    const sectionData = [];
 
-                if (checkboxId && uncheckedCheckboxesIds.has(checkboxId)) {
-                    const timeElement = timeElements[index];
-                    const title = item.textContent.trim();
-                    const time = timeElement ? timeElement.querySelector('span').textContent.trim() : '0m';
+    console.log('Sections found:', sections.length);
 
-                    lessonData.push({
-                        title: title,
-                        time: time
+    sections.forEach(section => {
+        const sectionTitleElement = section.querySelector('.truncate-with-tooltip--ellipsis--YJw4N');
+        const sectionTitle = sectionTitleElement ? sectionTitleElement.textContent.trim() : 'Seção desconhecida';
+
+        // const expanded = section.childNodes.getAttribute('aria-expanded') === 'true';
+        // console.log('Sections expanded:', expanded);
+
+        const lessons = [];
+        let totalRemainingTime = 0;
+        const sectionContainer = section.closest('[data-purpose^="section-panel"]');
+        const items = sectionContainer ? sectionContainer.querySelectorAll('[data-purpose^="curriculum-item-"]') : [];
+
+        items.forEach(item => {
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            const timeElement = item.querySelector('div.curriculum-item-link--metadata--XK804 span');
+            const lessonTitleElement = item.querySelector('[data-purpose^="item-title"]');
+            const lessonTitle = lessonTitleElement ? lessonTitleElement.textContent.trim() : 'Lição desconhecida';
+
+            if (lessonTitleElement) {
+                if (timeElement && (!checkbox || !checkbox.checked)) {
+                    const timeStr = timeElement.textContent;
+                    const time = parseTime(timeStr);
+                    totalRemainingTime += time;
+                    lessons.push({
+                        title: lessonTitle,
+                        time: timeStr
                     });
-                } else if (checkboxId && !uncheckedCheckboxesIds.has(checkboxId)) {
-                    const title = item.textContent.trim();
-
-                    lessonData.push({
-                        title: title,
+                } else if (checkbox && checkbox.checked) {
+                    lessons.push({
+                        title: lessonTitle,
                         time: 'Assistido'
                     });
                 }
+            }
+        });
+
+        if (lessons.length > 0) {
+            sectionData.push({
+                sectionTitle: sectionTitle,
+                remainingTime: totalRemainingTime,
+                lessons: lessons
             });
+        }
+    });
 
-            return lessonData;
-        };
+    sectionData.reverse();
+    console.log('Final section data:', sectionData);
+    return sectionData;
+};
 
-        const lessons = getLessonData();
-
-        sendResponse({ sectionTitle, remainingTime, lessons });
-    }
-
-    if (request.action === 'highlightLesson') {
+function handleMessage(request, sendResponse) {
+    if (request.action === "getSectionData") {
+        const sectionData = getSectionData();
+        console.log('Section Data: ', sectionData);
+        sendResponse({ status: 'success', sectionData: sectionData });
+    } else if (request.action === 'highlightLesson') {
         highlightLesson(request.lesson);
     } else if (request.action === 'bookmarkLesson') {
         highlightBookmarkedLessons(request.message);
@@ -231,10 +215,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         highlightBookmarkedLessons(request.message, true);
         showNotification('Marcador de aula removido');
     }
-});
+}
 
 window.addEventListener('load', () => {
+    const observer = new MutationObserver((mutations, obs) => {
+        if (document.querySelector('.ud-accordion-panel-title')) {
+            chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+                handleMessage(request, sendResponse);
+                return true;
+            });
+            obs.disconnect();
+        }
+    });
+    observer.observe(document, {
+        childList: true,
+        subtree: true
+    });
+
     chrome.runtime.sendMessage({ action: 'updateLessonsMarker' }, response => {
-        console.log('Udemy Time Tracker: ' + (response ? response.message : 'Sem resposta'));
+        console.log('Udemy Time Tracker: ', response ? response.message : 'Sem resposta');
     });
 });

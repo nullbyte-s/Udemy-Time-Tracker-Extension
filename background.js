@@ -1,60 +1,55 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'updateLessonsMarker') {
-        if (request.data) {
-            const data = request.data;
-            processData(data)
-                .then(() => {
-                    sendResponse({ status: 'success' });
-                    chrome.storage.local.get('lessonsMarker', (result) => {
-                        const lessonsMarker = result.lessonsMarker;
-                        if (lessonsMarker) {
+        chrome.storage.local.get('lessonsMarker', (result) => {
+            if (request.data) {
+                const data = request.data;
+                processData(data)
+                    .then(() => {
+                        sendResponse({ status: 'success' });
+                        if (result.lessonsMarker) {
                             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                                chrome.tabs.sendMessage(tabs[0].id, { action: 'bookmarkLesson', message: lessonsMarker, status: 'updated' });
+                                chrome.tabs.sendMessage(tabs[0].id, { action: 'bookmarkLesson', message: result.lessonsMarker, status: 'updated' });
                             });
                         }
+                    })
+                    .catch(error => {
+                        sendResponse({ status: 'error', message: error.message });
                     });
-                })
-                .catch(error => {
-                    sendResponse({ status: 'error', message: error.message });
-                });
-        } else {
-            chrome.storage.local.get('lessonsMarker', (result) => {
-                const lessonsMarker = result.lessonsMarker;
-                if (lessonsMarker) {
+            } else {
+                if (result.lessonsMarker) {
                     sendResponse({ status: 'success', message: 'Marcador de aulas ativado' });
                 } else {
                     sendResponse({ status: 'error', message: 'Marcador de aulas inativo' });
                 }
-            });
-        }
+            }
+        });
         return true;
     } else if (request.action === 'cancelLessonsMarker') {
-        if (request.data) {
-            const data = request.data;
-            removeData(data)
-                .then(() => {
-                    sendResponse({ status: 'success' });
-                    chrome.storage.local.get('lessonsMarker', (result) => {
-                        const lessonsMarker = result.lessonsMarker;
-                        if (lessonsMarker) {
+        chrome.storage.local.get('lessonsMarker', (result) => {
+            if (request.data) {
+                const data = request.data;
+                removeData(data)
+                    .then(() => {
+                        sendResponse({ status: 'success' });
+                        if (result.lessonsMarker) {
                             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                                chrome.tabs.sendMessage(tabs[0].id, { action: 'cancelBookmarkLesson', message: lessonsMarker });
+                                chrome.tabs.sendMessage(tabs[0].id, { action: 'cancelBookmarkLesson', message: result.lessonsMarker });
                             });
                         }
+                    })
+                    .catch(error => {
+                        sendResponse({ status: 'error', message: error.message });
                     });
-                })
-                .catch(error => {
-                    sendResponse({ status: 'error', message: error.message });
-                });
-        } else {
-            removeData()
-                .then(() => {
-                    sendResponse({ status: 'success' });
-                })
-                .catch(error => {
-                    sendResponse({ status: 'error', message: error.message });
-                });
-        }
+            } else {
+                removeData()
+                    .then(() => {
+                        sendResponse({ status: 'success' });
+                    })
+                    .catch(error => {
+                        sendResponse({ status: 'error', message: error.message });
+                    });
+            }
+        });
         return true;
     } else if (request.action === 'getLessonsMarker') {
         chrome.storage.local.get('lessonsMarker', (result) => {
@@ -66,6 +61,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
         return true;
     }
+    return false;
 });
 
 async function processData(data) {
@@ -99,7 +95,7 @@ async function removeData(data = null) {
                             reject(new Error(chrome.runtime.lastError));
                         } else {
                             resolve();
-                            console.log('Removendo da base de dados' + JSON.stringify(lessonsMarker));
+                            console.log('Removendo da base de dados: ' + JSON.stringify(lessonsMarker));
                         }
                     });
                 } else {

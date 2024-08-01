@@ -1,6 +1,6 @@
 body {
     font-family: Arial, sans-serif;
-    width: 300px;
+    width: 350px;
     padding: 20px;
     background-color: #f0f8ff;
     margin: 0 auto;
@@ -10,15 +10,35 @@ select[multiple] option:checked {
     background-color: #b3d4fc;
 }
 
-.section-title {
-    font-size: 24px;
-    font-weight: bold;
+.title-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     margin-bottom: 20px;
 }
 
+.section-title:first-child {
+    left: 0;
+    margin-left: 25px;
+}
+
+.section-title:last-child {
+    right: 0;
+    margin-right: 25px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: bold;
+    max-width: 280px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 .section-info {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: bold;
     margin-bottom: 8px;
 }
@@ -109,4 +129,34 @@ select[multiple] option:checked {
 #reviewSelect .selected {
     background-color: #d3d3d3;
     color: #000;
+}
+
+#prev-section-btn,
+#next-section-btn {
+    position: absolute;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    background-color: #21415ecb;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    max-width: fit-content;
+    font-size: 14px;
+}
+
+#prev-section-btn:not([disabled]):hover,
+#next-section-btn:not([disabled]):hover {
+    color: #FFD700;
+    background-color: #2c679ecb;
+    outline-color: transparent;
+    outline-style: solid;
+    box-shadow: 0 0 0 2px #5a01a7;
+}
+
+#prev-section-btn[disabled],
+#next-section-btn[disabled]{
+  border: 1px solid #999999;
+  background-color: #cccccc;
+  color: #666666;
+  cursor: default;
 }
