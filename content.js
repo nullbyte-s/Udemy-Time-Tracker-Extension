@@ -144,18 +144,13 @@ function showNotification(message, duration = 2000) {
 }
 
 const getSectionData = () => {
+
     const sections = Array.from(document.querySelectorAll('.ud-accordion-panel-title'));
     const sectionData = [];
-
-    console.log('Sections found:', sections.length);
 
     sections.forEach(section => {
         const sectionTitleElement = section.querySelector('.truncate-with-tooltip--ellipsis--YJw4N');
         const sectionTitle = sectionTitleElement ? sectionTitleElement.textContent.trim() : 'Seção desconhecida';
-
-        // const expanded = section.childNodes.getAttribute('aria-expanded') === 'true';
-        // console.log('Sections expanded:', expanded);
-
         const lessons = [];
         let totalRemainingTime = 0;
         const sectionContainer = section.closest('[data-purpose^="section-panel"]');
@@ -189,20 +184,25 @@ const getSectionData = () => {
             sectionData.push({
                 sectionTitle: sectionTitle,
                 remainingTime: totalRemainingTime,
-                lessons: lessons
+                lessons: lessons,
+                isExpanded: true
+            });
+        } else if (lessons.length === 0) {
+            sectionData.push({
+                sectionTitle: sectionTitle,
+                remainingTime: 0,
+                lessons: [],
+                isExpanded: false
             });
         }
     });
-
     sectionData.reverse();
-    console.log('Final section data:', sectionData);
     return sectionData;
 };
 
 function handleMessage(request, sendResponse) {
     if (request.action === "getSectionData") {
         const sectionData = getSectionData();
-        console.log('Section Data: ', sectionData);
         sendResponse({ status: 'success', sectionData: sectionData });
     } else if (request.action === 'highlightLesson') {
         highlightLesson(request.lesson);
@@ -214,25 +214,34 @@ function handleMessage(request, sendResponse) {
     } else if (request.action === 'cancelBookmarkLesson') {
         highlightBookmarkedLessons(request.message, true);
         showNotification('Marcador de aula removido');
+    } else if (request.action === 'expandSection') {
+        const sectionTitle = request.sectionTitle;
+        const sections = Array.from(document.querySelectorAll('.ud-accordion-panel-title'));
+        sections.forEach(section => {
+            const sectionTitleElement = section.querySelector('.truncate-with-tooltip--ellipsis--YJw4N');
+            if (sectionTitleElement && sectionTitleElement.textContent.trim() === sectionTitle) {
+                const sectionContainer = section.closest('[data-purpose^="section-panel"]');
+                if (sectionContainer) {
+                    const expandableElement = sectionContainer.querySelector('[aria-expanded]');
+                    if (expandableElement) {
+                        expandableElement.click();
+                    }
+                }
+            }
+        });
+        sendResponse({ status: 'success' });
     }
 }
 
-window.addEventListener('load', () => {
-    const observer = new MutationObserver((mutations, obs) => {
-        if (document.querySelector('.ud-accordion-panel-title')) {
-            chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-                handleMessage(request, sendResponse);
-                return true;
-            });
-            obs.disconnect();
-        }
-    });
-    observer.observe(document, {
-        childList: true,
-        subtree: true
-    });
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    handleMessage(request, sendResponse);
+});
 
+window.addEventListener('load', () => {
     chrome.runtime.sendMessage({ action: 'updateLessonsMarker' }, response => {
-        console.log('Udemy Time Tracker: ', response ? response.message : 'Sem resposta');
+        console.log('Udemy Time Tracker: ' + (response ? response.message : 'Sem resposta'));
+        if (response.status === 'success') {
+            highlightBookmarkedLessons(response.data);
+        }
     });
 });

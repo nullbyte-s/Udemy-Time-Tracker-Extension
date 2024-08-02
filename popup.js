@@ -71,6 +71,22 @@ const calculateWatchableLessons = (maxMinutes, lessons, speed) => {
     };
 };
 
+const setSessionVariable = (key, value) => {
+    const data = {};
+    data[key] = value;
+    chrome.storage.local.set(data);
+};
+
+const getSessionVariable = (key, callback) => {
+    chrome.storage.local.get(key, (result) => {
+        callback(result[key]);
+    });
+};
+
+const removeSessionVariable = (key) => {
+    chrome.storage.local.remove(key);
+};
+
 const updateWatchableLessonsDisplay = (speed = 1) => {
     const sections = sectionData;
 
@@ -105,9 +121,9 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
 
                         for (const section of lessonsMarker) {
                             if (section.sessionTitle === sectionTitle) {
-                                const lessonsSet = new Set(section.lessonsList);
+                                const lessonsSet = new Set(section.lessons);
                                 selectedValues.forEach(value => lessonsSet.add(value));
-                                section.lessonsList = Array.from(lessonsSet);
+                                section.lessons = Array.from(lessonsSet);
                                 sectionFound = true;
                                 break;
                             }
@@ -135,14 +151,30 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
         };
 
         if (lastWatchableLesson === null) {
-            document.getElementById('last-lesson').textContent = "Seção finalizada";
-            document.getElementById('last-lesson').style.color = '#B0C4DE';
-            document.getElementById('last-lesson').style.fontStyle = 'italic';
+            document.getElementById('last-lesson').parentElement.style.display = 'none';
         } else {
             document.getElementById('last-lesson').textContent = lastWatchableLesson;
         }
 
-        document.getElementById('section-name').textContent = sectionTitle;
+        const sectionNameElement = document.getElementById('section-name');
+        sectionNameElement.textContent = sectionTitle;
+
+        if (section.isExpanded === false) {
+            sectionNameElement.style.cursor = 'pointer';
+            sectionNameElement.style.color = 'blue';
+            sectionNameElement.style.textDecoration = 'underline blue';
+            sectionNameElement.onclick = () => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, { action: 'expandSection', sectionTitle: sectionTitle }, response => {
+                        if (response.status === 'success') {
+                            setSessionVariable('currentSectionIndex', currentSectionIndex);
+                            window.location.reload();
+                        }
+                    });
+                });
+            };
+        }
+
         document.getElementById('time-remaining').textContent = formatTime(Math.round(remainingTime / speed));
 
         reviewSelect.innerHTML = '';
@@ -176,7 +208,7 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
 
                         for (const section of lessonsMarker) {
                             if (section.sessionTitle === sectionTitle) {
-                                section.lessonsList = section.lessonsList.filter(lesson => !selectedValues.includes(lesson));
+                                section.lessons = section.lessons.filter(lesson => !selectedValues.includes(lesson));
                                 sectionFound = true;
                                 break;
                             }
@@ -211,11 +243,11 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
 
             lessonsMarker = [{
                 sessionTitle: sectionTitle,
-                lessonsList: selectedValues
+                lessons: selectedValues
             }];
 
             for (const section of lessonsMarker) {
-                section.lessonsList = section.lessonsList.filter(lesson => !selectedValues.includes(lesson));
+                section.lessons = section.lessons.filter(lesson => !selectedValues.includes(lesson));
                 sectionFound = true;
                 break;
             }
@@ -237,6 +269,8 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     const getSpeed = () => parseFloat(document.getElementById('speed-select').value) || 1;
+    const resetLastLessonDisplay = document.getElementById('last-lesson').parentElement;
+    const sectionNameElement = document.getElementById('section-name');
 
     const updateButtonStates = () => {
         document.getElementById('prev-section-btn').disabled = currentSectionIndex === sectionData.length - 1;
@@ -277,7 +311,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('prev-section-btn').addEventListener('click', () => {
             if (currentSectionIndex < sectionData.length - 1) {
                 currentSectionIndex++;
-                console.log('currentSectionIndex next: ' + currentSectionIndex);
+                resetLastLessonDisplay.style.display && resetLastLessonDisplay.style.removeProperty('display');
+                sectionNameElement.style.color && (
+                    sectionNameElement.style.removeProperty('color'),
+                    sectionNameElement.style.removeProperty('text-decoration'),
+                    sectionNameElement.style.removeProperty('cursor')
+                );
                 updateDisplays();
             }
         });
@@ -285,7 +324,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('next-section-btn').addEventListener('click', () => {
             if (currentSectionIndex > 0) {
                 currentSectionIndex--;
-                console.log('currentSectionIndex prev: ' + currentSectionIndex);
+                resetLastLessonDisplay.style.display && resetLastLessonDisplay.style.removeProperty('display');
+                sectionNameElement.style.color && (
+                    sectionNameElement.style.removeProperty('color'),
+                    sectionNameElement.style.removeProperty('text-decoration'),
+                    sectionNameElement.style.removeProperty('cursor')
+                );
                 updateDisplays();
             }
         });
@@ -296,7 +340,16 @@ document.addEventListener('DOMContentLoaded', () => {
             chrome.tabs.sendMessage(tabs[0].id, { action: "getSectionData" }, (response) => {
                 if (response.status === 'success') {
                     sectionData = response.sectionData;
-                    updateDisplays();
+                    getSessionVariable('currentSectionIndex', (value) => {
+                        if (value !== undefined) {
+                            currentSectionIndex = value;
+                            removeSessionVariable('currentSectionIndex');
+                        } else {
+                            initialIndex = sectionData.indexOf(sectionData.find(section => section.isExpanded));
+                            currentSectionIndex = initialIndex !== -1 ? initialIndex : currentSectionIndex;
+                        }
+                        updateDisplays();
+                    });
                 } else {
                     document.getElementById('section-name').textContent = 'Erro ao obter dados';
                     document.getElementById('time-remaining').textContent = '0m';
