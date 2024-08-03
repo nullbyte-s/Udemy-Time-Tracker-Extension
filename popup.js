@@ -23,6 +23,32 @@ const updateSelectedTimeDisplay = () => {
     document.getElementById('selected-time').textContent = formatTime(selectedTime);
 };
 
+const setSectionVisibility = function (isAvailable) {
+    const contentElement = document.getElementsByClassName('content')[0];
+    const sectionNameElement = document.getElementById('section-name');
+    const prevSectionBtn = document.getElementById('prev-section-btn');
+    const nextSectionBtn = document.getElementById('next-section-btn');
+
+    if (isAvailable) {
+        contentElement.style.visibility = 'visible';
+        prevSectionBtn.style.visibility = 'visible';
+        nextSectionBtn.style.visibility = 'visible';
+        sectionNameElement.style.position = 'relative';
+        sectionNameElement.style.top = '';
+        sectionNameElement.style.left = '';
+        sectionNameElement.style.transform = '';
+    } else {
+        contentElement.style.visibility = 'hidden';
+        prevSectionBtn.style.visibility = 'hidden';
+        nextSectionBtn.style.visibility = 'hidden';
+        sectionNameElement.textContent = 'Indisponível nesta página';
+        sectionNameElement.style.position = 'absolute';
+        sectionNameElement.style.top = '50%';
+        sectionNameElement.style.left = '50%';
+        sectionNameElement.style.transform = 'translate(-50%, -50%)';
+    }
+};
+
 function updateRangeMax(remainingTime) {
     const timeRangeInput = document.getElementById('time-range');
     if (timeRangeInput) {
@@ -46,6 +72,25 @@ function parseTime(timeString) {
         }
     });
     return minutes;
+}
+
+function sendMessageToContentScript(message, callback) {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        try {
+            chrome.tabs.sendMessage(tabs[0].id, message, response => {
+                if (chrome.runtime.lastError) {
+                    setSectionVisibility(false);
+                } else {
+                    if (callback) {
+                        callback(response);
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Erro ao enviar mensagem para o content script:', error);
+            alert('Não foi possível enviar mensagem para o script de conteúdo.');
+        }
+    });
 }
 
 const calculateWatchableLessons = (maxMinutes, lessons, speed) => {
@@ -164,13 +209,11 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
             sectionNameElement.style.color = 'blue';
             sectionNameElement.style.textDecoration = 'underline blue';
             sectionNameElement.onclick = () => {
-                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                    chrome.tabs.sendMessage(tabs[0].id, { action: 'expandSection', sectionTitle: sectionTitle }, response => {
-                        if (response.status === 'success') {
-                            setSessionVariable('currentSectionIndex', currentSectionIndex);
-                            window.location.reload();
-                        }
-                    });
+                sendMessageToContentScript({ action: 'expandSection', sectionTitle: sectionTitle }, response => {
+                    if (response.status === 'success') {
+                        setSessionVariable('currentSectionIndex', currentSectionIndex);
+                        window.location.reload();
+                    }
                 });
             };
         }
@@ -215,11 +258,10 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
                         }
 
                         if (sectionFound) {
+
                             chrome.runtime.sendMessage({ action: 'cancelLessonsMarker', data: selectedValues }, response => {
                                 if (response.status === 'success') {
-                                    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                                        chrome.tabs.sendMessage(tabs[0].id, { action: 'cancelBookmarkLesson', message: lessonsMarker });
-                                    });
+                                    sendMessageToContentScript({ action: 'cancelBookmarkLesson', message: lessonsMarker });
                                 } else {
                                     console.log('Erro ao cancelar marcadores de lições:', response.message);
                                 }
@@ -254,9 +296,7 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
 
             chrome.runtime.sendMessage({ action: 'cancelLessonsMarker' }, response => {
                 if (response.status === 'success') {
-                    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                        chrome.tabs.sendMessage(tabs[0].id, { action: 'cancelBookmarkLesson', message: lessonsMarker });
-                    });
+                    sendMessageToContentScript({ action: 'cancelBookmarkLesson', message: lessonsMarker });
                 } else {
                     console.log('Erro ao remover todos os marcadores de lições:', response.message);
                 }
@@ -290,9 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('last-lesson').addEventListener('click', () => {
             const highlightLesson = document.getElementById('last-lesson').textContent.trim();
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightLesson', lesson: highlightLesson });
-            });
+            sendMessageToContentScript({ action: 'highlightLesson', lesson: highlightLesson });
         });
 
         document.getElementById('reviewSelect').addEventListener('mousedown', function (event) {
@@ -336,27 +374,26 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const loadDataAndInitialize = () => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            chrome.tabs.sendMessage(tabs[0].id, { action: "getSectionData" }, (response) => {
-                if (response.status === 'success') {
-                    sectionData = response.sectionData;
-                    getSessionVariable('currentSectionIndex', (value) => {
-                        if (value !== undefined) {
-                            currentSectionIndex = value;
-                            removeSessionVariable('currentSectionIndex');
-                        } else {
-                            initialIndex = sectionData.indexOf(sectionData.find(section => section.isExpanded));
-                            currentSectionIndex = initialIndex !== -1 ? initialIndex : currentSectionIndex;
-                        }
-                        updateDisplays();
-                    });
-                } else {
-                    document.getElementById('section-name').textContent = 'Erro ao obter dados';
-                    document.getElementById('time-remaining').textContent = '0m';
-                    document.getElementById('last-lesson').textContent = 'Nenhuma';
-                    document.getElementById("reviewSelect").style.display = 'none';
-                }
-            });
+        sendMessageToContentScript({ action: 'getSectionData' }, response => {
+            if (response.status === 'success') {
+                sectionData = response.sectionData;
+                getSessionVariable('currentSectionIndex', (value) => {
+                    if (value !== undefined) {
+                        currentSectionIndex = value;
+                        removeSessionVariable('currentSectionIndex');
+                    } else {
+                        initialIndex = sectionData.indexOf(sectionData.find(section => section.isExpanded));
+                        currentSectionIndex = initialIndex !== -1 ? initialIndex : currentSectionIndex;
+                    }
+                    setSectionVisibility(true);
+                    updateDisplays();
+                });
+            } else {
+                document.getElementById('section-name').textContent = 'Erro ao obter dados';
+                document.getElementById('time-remaining').textContent = '0m';
+                document.getElementById('last-lesson').textContent = 'Nenhuma';
+                document.getElementById("reviewSelect").style.display = 'none';
+            }
         });
     };
 

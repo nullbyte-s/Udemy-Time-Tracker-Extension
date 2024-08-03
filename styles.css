@@ -10,9 +10,16 @@ select[multiple] option:checked {
     background-color: #b3d4fc;
 }
 
+.content {
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+    visibility: hidden;
+}
+
 .title-container {
     display: flex;
-    align-items: center;
     justify-content: center;
     text-align: center;
     margin-bottom: 20px;
