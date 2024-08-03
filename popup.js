@@ -299,7 +299,7 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
                 if (response.status === 'success') {
                     sendMessageToContentScript({ action: 'cancelBookmarkLesson', message: lessonsMarker });
                 } else {
-                    console.log('Erro ao remover todos os marcadores de lições:', response.message);
+                    console.log('Erro ao remover todos os marcadores de lições: ', response.message);
                 }
             });
         });
