@@ -229,8 +229,8 @@ function handleMessage(request, sendResponse) {
                 }
             }
         });
-        sendResponse({ status: 'success' });
     }
+    sendResponse({ status: 'success' });
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -240,8 +240,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 window.addEventListener('load', () => {
     chrome.runtime.sendMessage({ action: 'updateLessonsMarker' }, response => {
         console.log('Udemy Time Tracker: ' + (response ? response.message : 'Sem resposta'));
-        if (response.status === 'success') {
-            highlightBookmarkedLessons(response.data);
-        }
+        // if (response.status === 'success') {
+        //     highlightBookmarkedLessons(response.data);
+        // }
     });
 });

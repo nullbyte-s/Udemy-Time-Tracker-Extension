@@ -213,6 +213,7 @@ const updateWatchableLessonsDisplay = (speed = 1) => {
                     if (response.status === 'success') {
                         setSessionVariable('currentSectionIndex', currentSectionIndex);
                         window.location.reload();
+                        chrome.runtime.sendMessage({ action: 'updateLessonsMarker' });
                     }
                 });
             };
